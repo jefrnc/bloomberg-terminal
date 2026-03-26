@@ -17,7 +17,35 @@ export const errorAtom = atom<string | null>(null);
 export const isShortcutsHelpOpenAtom = atom(false);
 
 // View state atoms
-export const currentViewAtom = atom<"market" | "news" | "movers" | "volatility" | "rmi">("market");
+export const currentViewAtom = atom<
+  | "market"
+  | "news"
+  | "movers"
+  | "volatility"
+  | "rmi"
+  | "scanner"
+  | "dilution"
+  | "heatmap"
+  | "signals"
+  | "alerts"
+>("scanner");
+
+// Re-export small caps atoms
+export {
+  smallCapViewAtom,
+  scannerModeAtom,
+  selectedTickerAtom,
+  floatRangeAtom,
+  marketCapRangeAtom,
+  showSSROnlyAtom,
+  dilutionRiskFilterAtom,
+  minGapPercentAtom,
+  minVolumeAtom,
+  showDilutionColumnAtom,
+  showShortColumnAtom,
+  alertsAtom,
+  addAlertAtom,
+} from "./smallcaps";
 
 // RMI view state atoms
 export const rmiSelectedRegionAtom = atom<"americas" | "emea" | "asiaPacific">("americas");

@@ -2,6 +2,7 @@
 
 import { useAtom } from "jotai";
 import { useCallback } from "react";
+import { showDilutionColumnAtom } from "../atoms/smallcaps";
 import {
   activeWatchlistAtom,
   addWatchlistAtom,
@@ -11,9 +12,9 @@ import {
   isConfirmModalOpenAtom,
   isWatchlistOpenAtom,
   openConfirmModalAtom,
+  resetFiltersAtom,
   watchlistsAtom,
 } from "../atoms/terminal-ui";
-import { defaultFilters, resetFiltersAtom, writableFiltersAtom } from "../atoms/terminal-ui";
 import { ConfirmationModal } from "../core/confirmation-modal";
 import { ShortcutsHelp } from "../core/keyboard-shortcuts";
 import { Watchlist } from "../core/watchlist";
@@ -22,15 +23,19 @@ import { useMarketDataQuery } from "../hooks";
 import { TerminalFilterBar } from "../layout/terminal-filter-bar";
 import { TerminalHeader } from "../layout/terminal-header";
 import { TerminalLayout } from "../layout/terminal-layout";
-import type { FilterState, MarketItem } from "../types";
+import type { MarketItem } from "../types";
+import { AlertsView } from "../views/alerts-view";
+import { DilutionView } from "../views/dilution-view";
+import { GapHeatmapView } from "../views/gap-heatmap-view";
 import MarketMoversView from "../views/market-movers-view";
 import { MarketView } from "../views/market-view";
 import NewsView from "../views/news-view";
 import { RmiView } from "../views/rmi-view";
+import { ScannerView } from "../views/scanner-view";
+import { StrategySignalsView } from "../views/strategy-signals-view";
 import VolatilityView from "../views/volatility-view";
 
 export default function BloombergTerminal() {
-  // Use our custom hooks for state management
   const {
     isDarkMode,
     error,
@@ -40,9 +45,14 @@ export default function BloombergTerminal() {
     isShortcutsHelpOpen,
     setIsShortcutsHelpOpen,
     handleThemeToggle,
+    handleScannerView,
+    handleDilutionView,
+    handleMoversView,
+    handleSignalsView,
+    handleAlertsView,
+    handleHeatmapView,
     handleMarketView,
     handleNewsView,
-    handleMoversView,
     handleVolatilityView,
     handleRmiView,
     handleCancelClick,
@@ -51,14 +61,14 @@ export default function BloombergTerminal() {
     handleHelpClick,
   } = useTerminalUI();
 
-  // Use Jotai atoms for state management
+  // Jotai atoms for state management
   const [isConfirmModalOpen, setIsConfirmModalOpen] = useAtom(isConfirmModalOpenAtom);
   const [confirmModalProps, setConfirmModalProps] = useAtom(confirmModalPropsAtom);
   const [isWatchlistOpen, setIsWatchlistOpen] = useAtom(isWatchlistOpenAtom);
   const [watchlists, setWatchlists] = useAtom(watchlistsAtom);
   const [activeWatchlist, setActiveWatchlist] = useAtom(activeWatchlistAtom);
-  const [filters, setFilters] = useAtom(writableFiltersAtom);
   const [, resetFilters] = useAtom(resetFiltersAtom);
+  const [showDilution, setShowDilution] = useAtom(showDilutionColumnAtom);
 
   // Action atoms
   const [, openConfirmModal] = useAtom(openConfirmModalAtom);
@@ -66,7 +76,7 @@ export default function BloombergTerminal() {
   const [, confirmAndCloseModal] = useAtom(confirmAndCloseModalAtom);
   const [, addWatchlist] = useAtom(addWatchlistAtom);
 
-  // Use our React Query hook for market data
+  // React Query hook for market data
   const { marketData: data, refreshData, toggleRealTimeUpdates, isLoading } = useMarketDataQuery();
 
   // Get all market indices for watchlist
@@ -96,7 +106,6 @@ export default function BloombergTerminal() {
       title: "Confirm Action",
       message: "Are you sure you want to cancel the current operation?",
       onConfirm: () => {
-        // Reset any pending changes or operations
         console.log("Operation cancelled");
       },
     });
@@ -113,7 +122,6 @@ export default function BloombergTerminal() {
       title: "Clear All Filters",
       message: "Are you sure you want to reset all filters to default?",
       onConfirm: () => {
-        // Reset filters to default using the resetFiltersAtom
         resetFilters();
         console.log("Filters reset to default");
       },
@@ -122,13 +130,18 @@ export default function BloombergTerminal() {
 
   // Handle back from specialized views
   const handleBackFromView = () => {
-    setCurrentView("market");
+    setCurrentView("scanner");
   };
 
   // Handle watchlist save
   const handleWatchlistSave = (watchlist: { name: string; indices: string[] }) => {
     addWatchlist(watchlist);
   };
+
+  // Toggle dilution column with keyboard
+  const handleToggleDilution = useCallback(() => {
+    setShowDilution((prev) => !prev);
+  }, [setShowDilution]);
 
   // Define keyboard shortcuts
   const shortcuts = [
@@ -163,23 +176,43 @@ export default function BloombergTerminal() {
     },
     {
       key: "1",
-      action: handleMarketView,
-      description: "Show market view",
+      action: handleScannerView,
+      description: "Scanner view",
     },
     {
       key: "2",
-      action: handleNewsView,
-      description: "Show news view",
+      action: handleDilutionView,
+      description: "Dilution view (if ticker selected)",
     },
     {
       key: "3",
       action: handleMoversView,
-      description: "Show market movers",
+      description: "Gap movers",
     },
     {
       key: "4",
-      action: handleVolatilityView,
-      description: "Show volatility view",
+      action: handleSignalsView,
+      description: "Strategy signals",
+    },
+    {
+      key: "5",
+      action: handleAlertsView,
+      description: "Alerts",
+    },
+    {
+      key: "6",
+      action: handleHeatmapView,
+      description: "Gap heatmap (if ticker selected)",
+    },
+    {
+      key: "g",
+      action: handleScannerView,
+      description: "Scanner: GAP mode",
+    },
+    {
+      key: "d",
+      action: handleToggleDilution,
+      description: "Toggle dilution column",
     },
     {
       key: "?",
@@ -188,7 +221,95 @@ export default function BloombergTerminal() {
     },
   ];
 
-  // Render the appropriate view based on currentView state
+  // Render views based on currentView
+  if (currentView === "dilution") {
+    return (
+      <TerminalLayout shortcuts={shortcuts}>
+        <TerminalHeader
+          isDarkMode={isDarkMode}
+          onCancelClick={handleCancelWithConfirm}
+          onNewClick={handleNewWatchlist}
+          onBlancClick={handleBlancWithConfirm}
+          onScannerClick={handleScannerView}
+          onDilutionClick={handleDilutionView}
+          onMoversClick={handleMoversView}
+          onSignalsClick={handleSignalsView}
+          onAlertsClick={handleAlertsView}
+          onHeatmapClick={handleHeatmapView}
+          onHelpClick={handleHelpClick}
+          onThemeToggle={handleThemeToggle}
+        />
+        <DilutionView isDarkMode={isDarkMode} />
+      </TerminalLayout>
+    );
+  }
+
+  if (currentView === "heatmap") {
+    return (
+      <TerminalLayout shortcuts={shortcuts}>
+        <TerminalHeader
+          isDarkMode={isDarkMode}
+          onCancelClick={handleCancelWithConfirm}
+          onNewClick={handleNewWatchlist}
+          onBlancClick={handleBlancWithConfirm}
+          onScannerClick={handleScannerView}
+          onDilutionClick={handleDilutionView}
+          onMoversClick={handleMoversView}
+          onSignalsClick={handleSignalsView}
+          onAlertsClick={handleAlertsView}
+          onHeatmapClick={handleHeatmapView}
+          onHelpClick={handleHelpClick}
+          onThemeToggle={handleThemeToggle}
+        />
+        <GapHeatmapView isDarkMode={isDarkMode} />
+      </TerminalLayout>
+    );
+  }
+
+  if (currentView === "signals") {
+    return (
+      <TerminalLayout shortcuts={shortcuts}>
+        <TerminalHeader
+          isDarkMode={isDarkMode}
+          onCancelClick={handleCancelWithConfirm}
+          onNewClick={handleNewWatchlist}
+          onBlancClick={handleBlancWithConfirm}
+          onScannerClick={handleScannerView}
+          onDilutionClick={handleDilutionView}
+          onMoversClick={handleMoversView}
+          onSignalsClick={handleSignalsView}
+          onAlertsClick={handleAlertsView}
+          onHeatmapClick={handleHeatmapView}
+          onHelpClick={handleHelpClick}
+          onThemeToggle={handleThemeToggle}
+        />
+        <StrategySignalsView isDarkMode={isDarkMode} />
+      </TerminalLayout>
+    );
+  }
+
+  if (currentView === "alerts") {
+    return (
+      <TerminalLayout shortcuts={shortcuts}>
+        <TerminalHeader
+          isDarkMode={isDarkMode}
+          onCancelClick={handleCancelWithConfirm}
+          onNewClick={handleNewWatchlist}
+          onBlancClick={handleBlancWithConfirm}
+          onScannerClick={handleScannerView}
+          onDilutionClick={handleDilutionView}
+          onMoversClick={handleMoversView}
+          onSignalsClick={handleSignalsView}
+          onAlertsClick={handleAlertsView}
+          onHeatmapClick={handleHeatmapView}
+          onHelpClick={handleHelpClick}
+          onThemeToggle={handleThemeToggle}
+        />
+        <AlertsView isDarkMode={isDarkMode} />
+      </TerminalLayout>
+    );
+  }
+
   if (currentView === "news") {
     return (
       <TerminalLayout shortcuts={shortcuts}>
@@ -197,10 +318,23 @@ export default function BloombergTerminal() {
     );
   }
 
-  // Add the condition for the movers view
   if (currentView === "movers") {
     return (
       <TerminalLayout shortcuts={shortcuts}>
+        <TerminalHeader
+          isDarkMode={isDarkMode}
+          onCancelClick={handleCancelWithConfirm}
+          onNewClick={handleNewWatchlist}
+          onBlancClick={handleBlancWithConfirm}
+          onScannerClick={handleScannerView}
+          onDilutionClick={handleDilutionView}
+          onMoversClick={handleMoversView}
+          onSignalsClick={handleSignalsView}
+          onAlertsClick={handleAlertsView}
+          onHeatmapClick={handleHeatmapView}
+          onHelpClick={handleHelpClick}
+          onThemeToggle={handleThemeToggle}
+        />
         <MarketMoversView
           isDarkMode={isDarkMode}
           onBack={handleBackFromView}
@@ -212,7 +346,6 @@ export default function BloombergTerminal() {
     );
   }
 
-  // Add the condition for the volatility view
   if (currentView === "volatility") {
     return (
       <TerminalLayout shortcuts={shortcuts}>
@@ -227,7 +360,6 @@ export default function BloombergTerminal() {
     );
   }
 
-  // Add the condition for the RMI view
   if (currentView === "rmi") {
     return (
       <TerminalLayout shortcuts={shortcuts}>
@@ -236,6 +368,7 @@ export default function BloombergTerminal() {
     );
   }
 
+  // Default: Scanner view (or legacy market view)
   return (
     <TerminalLayout shortcuts={shortcuts}>
       <TerminalHeader
@@ -243,17 +376,19 @@ export default function BloombergTerminal() {
         onCancelClick={handleCancelWithConfirm}
         onNewClick={handleNewWatchlist}
         onBlancClick={handleBlancWithConfirm}
-        onNewsClick={handleNewsView}
+        onScannerClick={handleScannerView}
+        onDilutionClick={handleDilutionView}
         onMoversClick={handleMoversView}
-        onVolatilityClick={handleVolatilityView}
-        onRmiClick={handleRmiView}
+        onSignalsClick={handleSignalsView}
+        onAlertsClick={handleAlertsView}
+        onHeatmapClick={handleHeatmapView}
         onHelpClick={handleHelpClick}
         onThemeToggle={handleThemeToggle}
       />
 
-      <TerminalFilterBar isDarkMode={isDarkMode} watchlists={watchlists} />
+      <TerminalFilterBar isDarkMode={isDarkMode} />
 
-      <MarketView isDarkMode={isDarkMode} />
+      <ScannerView isDarkMode={isDarkMode} />
 
       {/* Modals */}
       <ConfirmationModal

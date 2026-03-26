@@ -1,3 +1,21 @@
+// Re-export small caps types
+export type {
+  ScannerResult,
+  DueDiligenceData,
+  DilutionRiskAssessment,
+  GapHeatmapData,
+  RealtimeAlert,
+  SmallCapView,
+  SmallCapFilterState,
+  DilutionRiskLevel,
+  ScannerMode,
+  ATMFiling,
+  WarrantFiling,
+  ShelfRegistration,
+  RecentOffering,
+  DilutionRiskBreakdown,
+} from "./types/smallcaps";
+
 // Define proper types for market data
 export type MarketItem = {
   id: string;

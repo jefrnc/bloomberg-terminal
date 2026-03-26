@@ -3,3 +3,8 @@ export * from "./market-movers-view";
 export * from "./news-view";
 export * from "./volatility-view";
 export * from "./rmi-view";
+export * from "./scanner-view";
+export * from "./dilution-view";
+export * from "./gap-heatmap-view";
+export * from "./strategy-signals-view";
+export * from "./alerts-view";

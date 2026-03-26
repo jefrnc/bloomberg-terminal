@@ -33,3 +33,15 @@ export const bloombergColors = {
     sparklineGray: "#888888",
   },
 };
+
+// Dilution-specific color palette
+export const dilutionColors = {
+  extreme: "#dc2626", // red-600
+  high: "#ef4444", // red-500
+  moderate: "#eab308", // yellow-500
+  low: "#16a34a", // green-600
+  shelf: "#f97316", // orange (S-3 shelf filings)
+  prospectus: "#ef4444", // red (424B prospectus)
+  event8k: "#3b82f6", // blue (8-K events)
+  insider: "#22c55e", // green (Form 4 insider)
+};

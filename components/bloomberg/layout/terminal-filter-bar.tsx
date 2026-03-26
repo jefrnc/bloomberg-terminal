@@ -10,146 +10,205 @@ import {
 import { useAtom } from "jotai";
 import { ChevronDown } from "lucide-react";
 import {
-  show10DAtom,
-  showAvatAtom,
-  showCADAtom,
-  showFuturesAtom,
-  showMoversAtom,
-  showRatiosAtom,
-  showVolatilityAtom,
-  showYTDAtom,
-} from "../atoms";
-import { activeWatchlistAtom } from "../atoms/terminal-ui";
+  dilutionRiskFilterAtom,
+  floatRangeAtom,
+  marketCapRangeAtom,
+  minGapPercentAtom,
+  minVolumeAtom,
+  scannerModeAtom,
+  showDilutionColumnAtom,
+  showSSROnlyAtom,
+  showShortColumnAtom,
+} from "../atoms/smallcaps";
 import { BloombergButton } from "../core/bloomberg-button";
 import { bloombergColors } from "../lib/theme-config";
-import type { FilterState } from "../types";
+import type { DilutionRiskLevel, ScannerMode } from "../types/smallcaps";
 
 type TerminalFilterBarProps = {
   isDarkMode: boolean;
-  watchlists: Array<{ name: string; indices: string[] }>;
 };
 
-export function TerminalFilterBar({ isDarkMode, watchlists }: TerminalFilterBarProps) {
+const FLOAT_OPTIONS = ["ALL", "<1M", "1-5M", "5-10M", "10-20M", ">20M"];
+const MCAP_OPTIONS = ["ALL", "<50M", "50-100M", "100-300M", "300M-1B"];
+const RISK_OPTIONS: Array<DilutionRiskLevel | "ALL"> = [
+  "ALL",
+  "EXTREME",
+  "HIGH",
+  "MODERATE",
+  "LOW",
+];
+const GAP_OPTIONS = [0, 2, 5, 10, 20];
+const VOLUME_OPTIONS = [0, 10000, 50000, 100000, 500000, 1000000];
+
+function formatVolume(v: number): string {
+  if (v === 0) return "0";
+  if (v >= 1_000_000) return `${(v / 1_000_000).toFixed(0)}M`;
+  if (v >= 1_000) return `${(v / 1_000).toFixed(0)}K`;
+  return v.toString();
+}
+
+export function TerminalFilterBar({ isDarkMode }: TerminalFilterBarProps) {
   const colors = isDarkMode ? bloombergColors.dark : bloombergColors.light;
 
-  // Use Jotai atoms directly for state management
-  const [showMovers, setShowMovers] = useAtom(showMoversAtom);
-  const [showVolatility, setShowVolatility] = useAtom(showVolatilityAtom);
-  const [showRatios, setShowRatios] = useAtom(showRatiosAtom);
-  const [showFutures, setShowFutures] = useAtom(showFuturesAtom);
-  const [showAvat, setShowAvat] = useAtom(showAvatAtom);
-  const [show10D, setShow10D] = useAtom(show10DAtom);
-  const [showYTD, setShowYTD] = useAtom(showYTDAtom);
-  const [showCAD, setShowCAD] = useAtom(showCADAtom);
-  const [activeWatchlist, setActiveWatchlist] = useAtom(activeWatchlistAtom);
+  const [scannerMode, setScannerMode] = useAtom(scannerModeAtom);
+  const [floatRange, setFloatRange] = useAtom(floatRangeAtom);
+  const [marketCapRange, setMarketCapRange] = useAtom(marketCapRangeAtom);
+  const [showSSROnly, setShowSSROnly] = useAtom(showSSROnlyAtom);
+  const [dilutionRiskFilter, setDilutionRiskFilter] = useAtom(dilutionRiskFilterAtom);
+  const [minGapPercent, setMinGapPercent] = useAtom(minGapPercentAtom);
+  const [minVolume, setMinVolume] = useAtom(minVolumeAtom);
+  const [showDilution, setShowDilution] = useAtom(showDilutionColumnAtom);
+  const [showShort, setShowShort] = useAtom(showShortColumnAtom);
 
   return (
     <div
       className={`flex flex-wrap items-center gap-2 bg-[${colors.surface}] px-2 py-1 text-[${colors.accent}] text-xs sm:text-sm`}
     >
+      {/* Scanner Mode */}
       <DropdownMenu>
-        <DropdownMenuTrigger className="flex items-center gap-1">
-          <span className="font-bold">{activeWatchlist ? activeWatchlist : "Standard"}</span>
-          <ChevronDown className="h-3 w-3 sm:h-4 sm:w-4" />
+        <DropdownMenuTrigger asChild>
+          <BloombergButton color="accent" className="flex items-center gap-1">
+            <span>{scannerMode.toUpperCase()}</span>
+            <ChevronDown className="h-3 w-3" />
+          </BloombergButton>
         </DropdownMenuTrigger>
         <DropdownMenuContent className="font-mono text-xs">
-          <DropdownMenuItem onClick={() => setActiveWatchlist(null)}>Standard</DropdownMenuItem>
-          {watchlists.map((list) => (
-            <DropdownMenuItem key={list.name} onClick={() => setActiveWatchlist(list.name)}>
-              {list.name}
+          <DropdownMenuItem onClick={() => setScannerMode("gap")}>GAP</DropdownMenuItem>
+          <DropdownMenuItem onClick={() => setScannerMode("momentum")}>MOMENTUM</DropdownMenuItem>
+          <DropdownMenuItem onClick={() => setScannerMode("breakout")}>BREAKOUT</DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+
+      {/* Float Range */}
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <BloombergButton
+            color={floatRange !== "ALL" ? "green" : "default"}
+            className="flex items-center gap-1"
+          >
+            <span>Float: {floatRange}</span>
+            <ChevronDown className="h-3 w-3" />
+          </BloombergButton>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent className="font-mono text-xs">
+          {FLOAT_OPTIONS.map((opt) => (
+            <DropdownMenuItem key={opt} onClick={() => setFloatRange(opt)}>
+              {opt}
             </DropdownMenuItem>
           ))}
         </DropdownMenuContent>
       </DropdownMenu>
 
-      <div className="flex items-center gap-1">
-        <Checkbox
-          id="movers"
-          checked={showMovers}
-          onCheckedChange={(checked) => setShowMovers(!!checked)}
-          className="h-3 w-3 rounded-none border-gray-500 data-[state=checked]:bg-gray-500"
-        />
-        <label htmlFor="movers">Movers</label>
-      </div>
-
-      <div className="flex items-center gap-1">
-        <Checkbox
-          id="volatility"
-          checked={showVolatility}
-          onCheckedChange={(checked) => setShowVolatility(!!checked)}
-          className="h-3 w-3 rounded-none border-gray-500 data-[state=checked]:bg-gray-500"
-        />
-        <label htmlFor="volatility">Volatility</label>
-      </div>
-
-      <div className="flex items-center gap-1">
-        <Checkbox
-          id="ratios"
-          checked={showRatios}
-          onCheckedChange={(checked) => setShowRatios(!!checked)}
-          className="h-3 w-3 rounded-none border-gray-500 data-[state=checked]:bg-gray-500"
-        />
-        <label htmlFor="ratios">Ratios</label>
-      </div>
-
-      <div className="flex items-center gap-1">
-        <Checkbox
-          id="futures"
-          checked={showFutures}
-          onCheckedChange={(checked) => setShowFutures(!!checked)}
-          className="h-3 w-3 rounded-none border-gray-500 data-[state=checked]:bg-gray-500"
-        />
-        <label htmlFor="futures">Futures</label>
-      </div>
-
-      <div className="flex items-center gap-1">
-        <Checkbox
-          id="avat"
-          checked={showAvat}
-          onCheckedChange={(checked) => setShowAvat(!!checked)}
-          className="h-3 w-3 rounded-none border-gray-500 data-[state=checked]:bg-gray-500"
-        />
-        <label htmlFor="avat">Δ AVAT</label>
-      </div>
-
+      {/* MCap Range */}
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <BloombergButton color={show10D ? "green" : "red"} className="flex items-center gap-1">
-            <span>10D</span>
-            <ChevronDown className="h-3 w-3 sm:h-4 sm:w-4" />
+          <BloombergButton
+            color={marketCapRange !== "ALL" ? "green" : "default"}
+            className="flex items-center gap-1"
+          >
+            <span>MCap: {marketCapRange}</span>
+            <ChevronDown className="h-3 w-3" />
           </BloombergButton>
         </DropdownMenuTrigger>
         <DropdownMenuContent className="font-mono text-xs">
-          <DropdownMenuItem onClick={() => setShow10D(false)}>Off</DropdownMenuItem>
-          <DropdownMenuItem onClick={() => setShow10D(true)}>10D</DropdownMenuItem>
+          {MCAP_OPTIONS.map((opt) => (
+            <DropdownMenuItem key={opt} onClick={() => setMarketCapRange(opt)}>
+              {opt}
+            </DropdownMenuItem>
+          ))}
         </DropdownMenuContent>
       </DropdownMenu>
 
+      {/* SSR Checkbox */}
+      <div className="flex items-center gap-1">
+        <Checkbox
+          id="ssr"
+          checked={showSSROnly}
+          onCheckedChange={(checked) => setShowSSROnly(!!checked)}
+          className="h-3 w-3 rounded-none border-gray-500 data-[state=checked]:bg-gray-500"
+        />
+        <label htmlFor="ssr">SSR</label>
+      </div>
+
+      {/* Dilution Risk Filter */}
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <BloombergButton color={showYTD ? "green" : "red"} className="flex items-center gap-1">
-            <span>%Chg {showYTD ? "YTD" : "Daily"}</span>
-            <ChevronDown className="h-3 w-3 sm:h-4 sm:w-4" />
+          <BloombergButton
+            color={dilutionRiskFilter !== "ALL" ? "red" : "default"}
+            className="flex items-center gap-1"
+          >
+            <span>Risk: {dilutionRiskFilter}</span>
+            <ChevronDown className="h-3 w-3" />
           </BloombergButton>
         </DropdownMenuTrigger>
         <DropdownMenuContent className="font-mono text-xs">
-          <DropdownMenuItem onClick={() => setShowYTD(false)}>Daily Change</DropdownMenuItem>
-          <DropdownMenuItem onClick={() => setShowYTD(true)}>%Chg YTD</DropdownMenuItem>
+          {RISK_OPTIONS.map((opt) => (
+            <DropdownMenuItem key={opt} onClick={() => setDilutionRiskFilter(opt)}>
+              {opt}
+            </DropdownMenuItem>
+          ))}
         </DropdownMenuContent>
       </DropdownMenu>
 
+      {/* Min Gap% */}
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <BloombergButton color={showCAD ? "green" : "red"} className="flex items-center gap-1">
-            <span>{showCAD ? "CAD" : "USD"}</span>
-            <ChevronDown className="h-3 w-3 sm:h-4 sm:w-4" />
+          <BloombergButton
+            color={minGapPercent > 0 ? "green" : "default"}
+            className="flex items-center gap-1"
+          >
+            <span>Gap≥{minGapPercent}%</span>
+            <ChevronDown className="h-3 w-3" />
           </BloombergButton>
         </DropdownMenuTrigger>
         <DropdownMenuContent className="font-mono text-xs">
-          <DropdownMenuItem onClick={() => setShowCAD(false)}>USD</DropdownMenuItem>
-          <DropdownMenuItem onClick={() => setShowCAD(true)}>CAD</DropdownMenuItem>
+          {GAP_OPTIONS.map((opt) => (
+            <DropdownMenuItem key={opt} onClick={() => setMinGapPercent(opt)}>
+              {opt}%
+            </DropdownMenuItem>
+          ))}
         </DropdownMenuContent>
       </DropdownMenu>
+
+      {/* Min Volume */}
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <BloombergButton
+            color={minVolume > 0 ? "green" : "default"}
+            className="flex items-center gap-1"
+          >
+            <span>Vol≥{formatVolume(minVolume)}</span>
+            <ChevronDown className="h-3 w-3" />
+          </BloombergButton>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent className="font-mono text-xs">
+          {VOLUME_OPTIONS.map((opt) => (
+            <DropdownMenuItem key={opt} onClick={() => setMinVolume(opt)}>
+              {formatVolume(opt)}
+            </DropdownMenuItem>
+          ))}
+        </DropdownMenuContent>
+      </DropdownMenu>
+
+      {/* Column toggles */}
+      <div className="flex items-center gap-1">
+        <Checkbox
+          id="dil-col"
+          checked={showDilution}
+          onCheckedChange={(checked) => setShowDilution(!!checked)}
+          className="h-3 w-3 rounded-none border-gray-500 data-[state=checked]:bg-gray-500"
+        />
+        <label htmlFor="dil-col">DIL</label>
+      </div>
+      <div className="flex items-center gap-1">
+        <Checkbox
+          id="short-col"
+          checked={showShort}
+          onCheckedChange={(checked) => setShowShort(!!checked)}
+          className="h-3 w-3 rounded-none border-gray-500 data-[state=checked]:bg-gray-500"
+        />
+        <label htmlFor="short-col">SHORT</label>
+      </div>
     </div>
   );
 }

@@ -4,14 +4,17 @@ import {
   Activity,
   AlertTriangle,
   BarChart2,
+  Bell,
   Database,
   HelpCircle,
   Moon,
-  Newspaper,
   RefreshCw,
+  Search,
+  Shield,
   Sun,
   TrendingUp,
   Wifi,
+  Zap,
 } from "lucide-react";
 import { BloombergButton } from "../core/bloomberg-button";
 import { useMarketDataQuery } from "../hooks";
@@ -22,10 +25,12 @@ type TerminalHeaderProps = {
   onCancelClick: () => void;
   onNewClick: () => void;
   onBlancClick: () => void;
-  onNewsClick: () => void;
+  onScannerClick: () => void;
+  onDilutionClick: () => void;
   onMoversClick: () => void;
-  onVolatilityClick: () => void;
-  onRmiClick: () => void;
+  onSignalsClick: () => void;
+  onAlertsClick: () => void;
+  onHeatmapClick: () => void;
   onHelpClick: () => void;
   onThemeToggle: () => void;
 };
@@ -35,10 +40,12 @@ export function TerminalHeader({
   onCancelClick,
   onNewClick,
   onBlancClick,
-  onNewsClick,
+  onScannerClick,
+  onDilutionClick,
   onMoversClick,
-  onVolatilityClick,
-  onRmiClick,
+  onSignalsClick,
+  onAlertsClick,
+  onHeatmapClick,
   onHelpClick,
   onThemeToggle,
 }: TerminalHeaderProps) {
@@ -61,17 +68,17 @@ export function TerminalHeader({
     const now = new Date();
     const diffSeconds = Math.floor((now.getTime() - lastUpdated.getTime()) / 1000);
 
-    let color = "bg-green-500"; // Fresh data (< 10 seconds)
+    let color = "bg-green-500";
     let pulseClass = "animate-pulse";
 
     if (diffSeconds > 60) {
-      color = "bg-red-500"; // Stale data (> 60 seconds)
+      color = "bg-red-500";
       pulseClass = "";
     } else if (diffSeconds > 30) {
-      color = "bg-yellow-500"; // Aging data (30-60 seconds)
+      color = "bg-yellow-500";
       pulseClass = "animate-pulse";
     } else if (diffSeconds > 10) {
-      color = "bg-green-500"; // Slightly aged data (10-30 seconds)
+      color = "bg-green-500";
       pulseClass = "";
     }
 
@@ -94,21 +101,30 @@ export function TerminalHeader({
       <BloombergButton color="green" onClick={onBlancClick}>
         BLANC
       </BloombergButton>
-      <BloombergButton color="green" onClick={onNewsClick}>
-        <Newspaper className="h-3 w-3 mr-1" />
-        NEWS
+
+      <BloombergButton color="green" onClick={onScannerClick}>
+        <Search className="h-3 w-3 mr-1" />
+        SCAN
+      </BloombergButton>
+      <BloombergButton color="green" onClick={onDilutionClick}>
+        <Shield className="h-3 w-3 mr-1" />
+        DLTN
       </BloombergButton>
       <BloombergButton color="green" onClick={onMoversClick}>
         <TrendingUp className="h-3 w-3 mr-1" />
         GMOV
       </BloombergButton>
-      <BloombergButton color="green" onClick={onVolatilityClick}>
-        <BarChart2 className="h-3 w-3 mr-1" />
-        GVOL
+      <BloombergButton color="green" onClick={onSignalsClick}>
+        <Zap className="h-3 w-3 mr-1" />
+        SGNL
       </BloombergButton>
-      <BloombergButton color="green" onClick={onRmiClick}>
-        <Activity className="h-3 w-3 mr-1" />
-        RMI
+      <BloombergButton color="green" onClick={onAlertsClick}>
+        <Bell className="h-3 w-3 mr-1" />
+        ALRT
+      </BloombergButton>
+      <BloombergButton color="green" onClick={onHeatmapClick}>
+        <BarChart2 className="h-3 w-3 mr-1" />
+        HEAT
       </BloombergButton>
 
       <BloombergButton color="accent" onClick={onHelpClick}>

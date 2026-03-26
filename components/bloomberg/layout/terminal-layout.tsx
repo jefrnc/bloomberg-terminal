@@ -4,10 +4,10 @@ import { Button } from "@/components/ui/button";
 import { useAtom } from "jotai";
 import { type ReactNode, useEffect, useState } from "react";
 import { errorAtom, isDarkModeAtom } from "../atoms";
-import { useTerminalUI } from "../hooks";
 import { KeyboardShortcuts } from "../core/keyboard-shortcuts";
-import { bloombergColors } from "../lib/theme-config";
 import { ShortcutIndicator } from "../core/shortcut-indicator";
+import { useTerminalUI } from "../hooks";
+import { bloombergColors } from "../lib/theme-config";
 
 type TerminalLayoutProps = {
   children: ReactNode;
