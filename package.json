@@ -2,6 +2,11 @@
   "name": "smallcaps-terminal",
   "version": "0.1.0",
   "private": true,
+  "author": {
+    "name": "jefrnc",
+    "email": "jefrnc@users.noreply.github.com"
+  },
+  "description": "Small Caps Dilution Intelligence Terminal",
   "main": "electron/main.js",
   "scripts": {
     "dev": "next dev",
